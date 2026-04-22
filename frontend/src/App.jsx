@@ -2,120 +2,187 @@ import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
+import React from 'react'
+import axios from 'axios'
+import Modal from "./components/Modal";
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+class App extends React.Component{
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
+  // add a constructor to take props
+  constructor(props) {
+    super(props);
+    
+    // add the props here
+    this.state = {
+    
+      // the viewCompleted prop represents the status
+      // of the task. Set it to false by default
+      viewCompleted: false,
+      activeItem: {
+        title: "",
+        description: "",
+        completed: false
+      },
+      
+      // this list stores all the completed tasks
+      taskList: []
+    };
+  }
+
+  // Add componentDidMount()
+  componentDidMount() {
+    this.refreshList();
+  }
+
+ 
+  refreshList = () => {
+    axios   //Axios to send and receive HTTP requests
+      .get("http://localhost:8000/api/tasks/")
+      .then(res => this.setState({ taskList: res.data }))
+      .catch(err => console.log(err));
+  };
+
+  // this arrow function takes status as a parameter
+  // and changes the status of viewCompleted to true
+  // if the status is true, else changes it to false
+  displayCompleted = status => {
+    if (status) {
+      return this.setState({ viewCompleted: true });
+    }
+    return this.setState({ viewCompleted: false });
+  };
+
+  // this array function renders two spans that help control
+  // the set of items to be displayed(ie, completed or incomplete)
+  renderTabList = () => {
+    return (
+      <div className="my-5 tab-list">
+        <span
+          onClick={() => this.displayCompleted(true)}
+          className={this.state.viewCompleted ? "active" : ""}
         >
-          Count is {count}
-        </button>
-      </section>
+          completed
+            </span>
+        <span
+          onClick={() => this.displayCompleted(false)}
+          className={this.state.viewCompleted ? "" : "active"}
+        >
+          Incompleted
+            </span>
+      </div>
+    );
+  };
+  // Main variable to render items on the screen
+  renderItems = () => {
+    const { viewCompleted } = this.state;
+    const newItems = this.state.taskList.filter(
+      (item) => item.completed === viewCompleted
+    );
+    return newItems.map((item) => (
+      <li
+        key={item.id}
+        className="list-group-item d-flex justify-content-between align-items-center"
+      >
+        <span
+          className={`todo-title mr-2 ${
+            this.state.viewCompleted ? "completed-todo" : ""
+          }`}
+          title={item.description}
+        >
+          {item.title}
+        </span>
+        <span>
+          <button
+            onClick={() => this.editItem(item)}
+            className="btn btn-secondary mr-2"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => this.handleDelete(item)}
+            className="btn btn-danger"
+          >
+            Delete
+          </button>
+        </span>
+      </li>
+    ));
+  };
 
-      <div className="ticks"></div>
+  toggle = () => {
+    //add this after modal creation
+    this.setState({ modal: !this.state.modal });
+  };
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+
+  // Submit an item
+  handleSubmit = (item) => {
+    this.toggle();
+     alert("save" + JSON.stringify(item));
+    if (item.id) {
+      // if old post to edit and submit
+      axios
+        .put(`http://localhost:8000/api/tasks/${item.id}/`, item)
+        .then((res) => this.refreshList());
+      return;
+    }
+    // if new post to submit
+    axios
+      .post("http://localhost:8000/api/tasks/", item)
+      .then((res) => this.refreshList());
+  };
+
+  // Delete item
+  handleDelete = (item) => {
+      alert("delete" + JSON.stringify(item));
+    axios
+      .delete(`http://localhost:8000/api/tasks/${item.id}/`)
+      .then((res) => this.refreshList());
+  };
+ 
+  // Create item
+  createItem = () => {
+    const item = { title: "", description: "", completed: false };
+    this.setState({ activeItem: item, modal: !this.state.modal });
+  };
+
+  //Edit item
+  editItem = (item) => {
+    this.setState({ activeItem: item, modal: !this.state.modal });
+  };
+
+  // Start by visual effects to viewer
+  render() {
+    return (
+      <main className="content">
+        <h1 className="text-success text-uppercase text-center my-4">
+          GFG Task Manager
+        </h1>
+        <div className="row ">
+          <div className="col-md-6 col-sm-10 mx-auto p-0">
+            <div className="card p-3">
+              <div className="">
+                <button onClick={this.createItem} className="btn btn-info">
+                  Add task
+                </button>
+              </div>
+              {this.renderTabList()}
+              <ul className="list-group list-group-flush">
+                {this.renderItems()}
+              </ul>
+            </div>
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        {this.state.modal ? (
+          <Modal
+            activeItem={this.state.activeItem}
+            toggle={this.toggle}
+            onSave={this.handleSubmit}
+          />
+        ) : null}
+      </main>
+    );
+  }
 }
-
-export default App
+export default App;
