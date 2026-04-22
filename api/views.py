@@ -9,7 +9,7 @@ from .serializer import CategorySerializer, ExpenseSerializer
 from django.db.models import Sum
 from datetime import datetime
 from django.contrib.auth.models import User
-import pandas as pd
+#import pandas as pd
 # Create your views here.
 
 @api_view(['GET', 'POST'])
